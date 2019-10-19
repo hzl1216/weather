@@ -33,7 +33,8 @@ class ProductDataset(torch.utils.data.Dataset):
         if self.transform:
             image = self.transform(image)
         return image,label,index
-
+    def get_file_names(self):
+        return self.file_name
         
 class TestDataset(torch.utils.data.Dataset):
     def __init__(self,data_path,transform=None):
@@ -56,6 +57,8 @@ class TestDataset(torch.utils.data.Dataset):
         if self.transform:
             image = self.transform(image)
         return image,str( self.file_name[index])
+    def get_file_names(self):
+        return self.file_name
 if __name__ == '__main__':
     val_dataset = TestDataset('test',
                                 transform=transforms.Compose([

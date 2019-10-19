@@ -99,20 +99,34 @@ class ResNet(nn.Module):
         x = self.fc(x)
         return x
 
-def ResNet50():
-    return ResNet([3, 4, 6, 3])
+def ResNet50(num_classes):
+    return ResNet([3, 4, 6, 3],num_classes)
 
-def ResNet101():
-    return ResNet([3, 4, 23, 3])
+def ResNet101(num_classes):
+    return ResNet([3, 4, 23, 3],num_classes)
 
-def ResNet152():
-    return ResNet([3, 8, 36, 3])
+def ResNet152(num_classes):
+    return ResNet([3, 8, 36, 3],num_classes)
 
+class pnasnet(nn.Module):
+    def __init__(self, model,final_feature=1000,n_class=9):
+        super(pnasnet, self).__init__()
+        self.resnet_layer = nn.Sequential(*list(model.children())[:-1])
+        print(self.resnet_layer)
+        self.Linear_layer = nn.Linear(final_feature, n_class) #加上一层参数修改好的全连接层
+
+                                     
+    def forward(self, x):
+        x = self.resnet_layer(x)
+        print(x.shape)
+        x = self.Linear_layer(x)
+
+        return x
 class Net(nn.Module):
-    def __init__(self, model,final_feature=2048,n_class=9,drop=0.0):
+    def __init__(self, model,final_feature=2048,n_class=9,dropout=0.0):
         super(Net, self).__init__()
         self.resnet_layer = nn.Sequential(*list(model.children())[:-1])
-        self.dropout= nn.Dropout(drop)
+        self.dropout= nn.Dropout(dropout)
         self.Linear_layer = nn.Linear(final_feature, n_class) #加上一层参数修改好的全连接层
 
                                      
@@ -125,17 +139,19 @@ class Net(nn.Module):
 
         return x
 class  EfficientNet_new(EfficientNet):
+
     @classmethod
-    def from_name(cls, model_name, num_classes,dropout_rate):
+    def from_name(cls, model_name, num_classes,dropout_rate=0.0):
         cls._check_model_name_is_valid(model_name)
         override_params={'num_classes': num_classes,'dropout_rate':dropout_rate}
         blocks_args, global_params = get_model_params(model_name, override_params)
         return cls(blocks_args, global_params)
-    @classmethod
-    def from_pretrained(cls, model_name, num_classes,dropout_rate):    
-        model = cls.from_name(model_name, num_classes= num_classes,dropout_rate=dropout_rate)
 
-        load_pretrained_weights(model, model_name, load_fc=(num_classes == 1000))
+    @classmethod
+    def from_pretrained(cls, model_name, num_classes,dropout_rate=0.0):    
+        model = cls.from_name(model_name, num_classes= num_classes,dropout_rate=dropout_rate)
+        print(model._global_params.dropout_rate)
+        load_pretrained_weights(model, model_name, False)
         return model
 if __name__=='__main__':
     #model = torchvision.models.resnet50()

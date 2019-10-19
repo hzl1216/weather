@@ -1,0 +1,156 @@
+from torchvision import transforms
+transforms_norm = transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+
+transforms_norm2 = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
+model_settings = {
+    'se_resnext50_32x4d': {
+        'epochs': 50,
+        'lr': 1e-4,
+        'dropout': 0.5,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'final_feature': 51200,
+        'batch_size': 64,
+        'resize_shape': 384,
+        'input_size': 331,
+        'transforms_norm': transforms_norm
+    },
+    'pnasnet5large': {
+        'epochs': 50,
+        'lr': 1e-4,
+        'dropout': 0.5,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'batch_size': 16,
+        'resize_shape': 384,
+        'input_size': 331,
+        'transforms_norm': transforms_norm2
+    },
+    'senet154': {
+        'epochs': 50,
+        'lr': 1e-4,
+        'dropout': 0.5,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'batch_size': 24,
+        'final_feature': 32768,
+        'resize_shape': 384,
+        'input_size': 331,
+        'transforms_norm': transforms_norm
+    },
+    'se_resnet101': {
+        'epochs': 50,
+        'lr': 1e-4,
+        'dropout': 0.5,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'final_feature': 51200,
+        'use_warm_up': True,
+        'batch_size': 50,
+        'resize_shape': 384,
+        'input_size': 331,
+        'transforms_norm': transforms_norm
+    },
+    'resnext101_32x8d_wsl': {
+        'epochs': 50,
+        'lr': 5e-5,
+        'dropout': 0.5,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'batch_size': 36,
+        'final_feature': 2048,
+        'resize_shape': 440,
+        'input_size': 384,
+        'transforms_norm': transforms_norm
+    },
+    'se_resnext101_32x4d': {
+        'epochs': 50,
+        'lr': 1e-4,
+        'dropout': 0.5,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'batch_size': 50,
+        'final_feature': 51200,
+        'resize_shape': 384,
+        'input_size': 331,
+        'transforms_norm': transforms_norm
+    },
+    'se_resnet50': {
+        'epochs': 50,
+        'lr': 1e-4,
+        'dropout': 0.5,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'final_feature': 51200,
+        'batch_size': 100,
+        'resize_shape': 384,
+        'input_size': 331,
+        'transforms_norm': transforms_norm
+    },
+    'efficientnet-b5': {
+        'epochs': 50,
+        'lr': 2e-4,
+        'dropout': 0.4,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'batch_size': 15,
+        'resize_shape': 512,
+        'input_size': 456,
+        'transforms_norm': transforms_norm
+    },
+    'efficientnet-b0': {
+        'epochs': 50,
+        'lr': 1e-4,
+        'dropout': 0.2,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'batch_size': 100,
+        'resize_shape': 384,
+        'input_size': 331,
+        'transforms_norm': transforms_norm
+    },
+    'efficientnet-b4': {
+        'epochs': 50,
+        'lr': 0.0001,
+        'dropout': 0.4,
+        'use_pencil_train': True,
+        'stage1': 10,
+        'stage2': 35,
+        'use_warm_up': True,
+        'batch_size': 32,
+        'resize_shape': 440,
+        'input_size': 380,
+        'transforms_norm': transforms_norm
+    },
+    'train_next': {
+            'epochs': 50,
+            'lr': 0.0001,
+            'dropout': 0.2,
+            'use_pencil_train': False,
+            'stage1': 10,
+            'stage2': 35,
+            'use_warm_up': True,
+            'batch_size': 32,
+            'resize_shape': 256,
+            'input_size': 224,
+            'transforms_norm': transforms_norm
+    }
+}

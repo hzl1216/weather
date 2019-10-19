@@ -2,11 +2,6 @@ import  pandas as pd
 import os
 from collections import Counter
 
-models_names = ['senet154','se_resnet101','efficientnet-b5',]
-
-#models_weight = [1.5,1,1,1,1]
-#models_names = ['se_resnet101','se_resnext50_32x4d','se_resnet50']
-#models_names=['se_resnet101','efficientnet-b4','se_resnext50_32x4d','efficientnet-b5','se_resnet50']
 def most(nums):
     return  Counter(nums).most_common(1)[0][0]
 def most2(nums):
@@ -62,6 +57,25 @@ def get_model_result_2(model_names,submit_type):
     dataframe.to_csv('result/submit.csv', index=False, sep=',')
 
 
+def get_model_result_3(model_names,submit_type):
+    files= os.listdir('result')
+    times = 5
+    submits=[]
+    types = []
+    for model_name in model_names:
+        submit = pd.read_csv('result/%s_submit.csv'%(model_name))
+        submits.append(submit['type'])
+        file_names = submit['FileName']
+        length = len(submit)
+    for i in range(length):
+        weight = [0 for _ in range(10)]
+        for j in range(len(model_names)):
+            print(submits[j][i])
+            weight[submits[j][i]]+= models_weight[j]
+        types.append(weight.index(max(weight)))
+
+    dataframe = pd.DataFrame({'FileName': file_names, 'type': types})
+    dataframe.to_csv('result/submit.csv', index=False, sep=',')
 def generator_label(model_names,submit_type):
     files= os.listdir('result')
     submits=[]
@@ -82,7 +96,26 @@ def generator_label(model_names,submit_type):
             filenames.append(file_names[i])
     dataframe = pd.DataFrame({'FileName': filenames, 'type': types})
     dataframe.to_csv('other_labels.csv', index=False, sep=',')
+def resort(model_names,submit_type='best'):
+    times = 5
+    file_names = pd.read_csv('result/submit.csv' )['FileName']
+    for model_name in model_names:
+        for i in range(times):
+            table = 'result/submit_%s_%d_%s.csv' % (model_name, i, submit_type)
+            submit = pd.read_csv(table)
+            types = []
+            for file_name in file_names:
+                type.append(submit['type'][submit['FileName'].index(file_name)])
+
+            length = len(submit)
+
+            dataframe = pd.DataFrame({'FileName': file_names, 'type': types})
+            dataframe.to_csv(table, index=False, sep=',')
 
 if __name__ =='__main__':
-    get_model_result_2(models_names,'best')
+#models_names=['se_resnet101','efficientnet-b4','se_resnext50_32x4d','efficientnet-b5','se_resnet50']
+    models_names = ['senet154']
+
+    models_weight = [4,3,2]
+    get_model_result_3(models_names,'best')
 #    generator_label(models_names,'best')

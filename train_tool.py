@@ -1,6 +1,15 @@
-import torch
-import torch.nn as nn
+import time
 import numpy as np
+from torchvision import transforms
+import torch.nn as nn
+import pandas as pd
+from net import ResNet50,ResNet101,ResNet152,Net,EfficientNet_new,pnasnet
+from dataset import ProductDataset,TestDataset
+from optimization import *
+import pretrainedmodels
+
+import os
+
 def loss_function(criterion,output,target,target_var,index,new_y,y,epoch,stage1,stage2,alpha=0.4,beta=0.1):
     logsoftmax = nn.LogSoftmax(dim=1).cuda()
     softmax = nn.Softmax(dim=1).cuda()
@@ -83,3 +92,149 @@ def pencil_train(train_loader, model, criterion, optimizer,scheduler, epoch, y,s
         y_record =  "record/y_%03d.npy" % epoch
         np.save(y_record,y)
     return y
+
+def train(epoch, model,data_loader,criterion,optimizer,scheduler):
+    t = time.time()
+    model.train()
+    avg_loss = []
+    #    scheduler.step()
+    #    print("Decaying learning rate to %g" % scheduler.get_lr()[0])
+    for i, data in enumerate(data_loader):
+        images, labels, _ = data
+        if torch.cuda.is_available():
+            images = images.cuda()
+            labels = labels.cuda()
+        optimizer.zero_grad()
+        output = model(images)
+
+        loss_train = criterion(output, labels)
+        loss_train.backward()
+        avg_loss.append(loss_train.item())
+        optimizer.step()
+        scheduler.step()
+    print('\nEpoch train: %d,loss: %f' % (epoch, sum(avg_loss) / len(avg_loss)))
+
+def generator_label(model_name,k_folds,model_settings,kwargs):
+#    model_name = 'se_resnet101'
+    submits = []
+    types = [ 0  for i in range(6391)]
+    file_names = [ ''  for i in range(6391)]
+    model_setting = model_settings[model_name]
+
+    if 'efficientnet' in model_name:
+        model = EfficientNet_new.from_pretrained(model_name=model_name,num_classes=9,dropout_rate=model_setting['dropout'])
+    elif 'resnext101_32x8d_wsl' in model_name:
+        net = torch.hub.load('facebookresearch/WSL-Images', 'resnext101_32x8d_wsl')
+        model = Net(net,final_feature=model_setting['final_feature'],dropout=model_setting['dropout'])
+    else:
+        net = pretrainedmodels.__dict__[model_name](num_classes=1000)
+        model = Net(net, final_feature=model_setting['final_feature'], dropout=model_setting['dropout'])
+    model.cuda()
+    model = nn.DataParallel(model)
+
+    model_setting = model_settings[model_name]
+    test_transforms = transforms.Compose([
+            transforms.Resize(model_setting['resize_shape']),
+            transforms.CenterCrop(model_setting['input_size']),
+            transforms.ToTensor(),
+            model_setting['transforms_norm']
+        ])
+    for i in range(5):
+        test_index = k_folds[i][1]
+        test_dataset = ProductDataset('Train_label.csv','train',test_index, transform=test_transforms)
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+                                                  batch_size=model_setting['batch_size'],
+                                                  shuffle=False,
+                                                  **kwargs
+                                                  )
+        model.load_state_dict(torch.load('model/%s_%d_best.model' % (model_name, i)))
+
+        testtypes= testY(model,test_loader)
+        for index in range(len(test_index)):
+            types[test_index[index]] = testtypes[index]
+            file_names[test_index[index]] = test_dataset.file_name[index]
+
+    dataframe = pd.DataFrame({'FileName': file_names, 'type': types})
+    dataframe.to_csv('result/test_label_%s.csv'%model_name, index=False, sep=',')
+    print('generator_label finish!')
+
+def val(epoch, model,data_loader):
+    print("\nValidation Epoch: %d" % epoch)
+    model.eval()
+    total = 0
+    correct = 0
+    with torch.no_grad():
+        for batch_idx, data in enumerate(data_loader):
+            images, labels, _ = data
+            if torch.cuda.is_available():
+                images = images.cuda()
+                labels = labels.cuda()
+            out = model(images)
+
+            _, predicted = torch.max(out.data, 1)
+
+            total += images.size(0)
+            correct += predicted.data.eq(labels.data).cpu().sum()
+    print("Acc: %f " % ((1.0 * correct.numpy()) / total))
+    return 1.0 * correct.numpy() / total
+
+
+def testY(model, test_loader):
+    print("\nstart testY")
+    model.eval()
+
+    types = []
+    softmax = nn.Softmax(dim=1).cuda()
+
+    with torch.no_grad():
+        all_output = None
+        for _ in range(1):
+            outputs = None
+            for batch_idx, data in enumerate(test_loader):
+                images, labels,_ = data
+                if torch.cuda.is_available():
+                    images = images.cuda()
+                out = model(images)
+                out = softmax(out).cpu().numpy()
+                if outputs is not None:
+                    outputs = np.concatenate((outputs, out))
+                else:
+                    outputs = out
+            if all_output is not None:
+                all_output += outputs
+            else:
+                all_output = outputs
+        predicted = np.argmax(all_output, 1)
+        types += [i + 1 for i in predicted.tolist()]
+    return types
+
+def test(model, test_loader,file_name_list, file_name=None,times=8):
+    print("\nstart test")
+    model.eval()
+
+    types = []
+    softmax = nn.Softmax(dim=1).cuda()
+
+    with torch.no_grad():
+        all_output = None
+        for _ in range(times):
+            outputs = None
+            for batch_idx, data in enumerate(test_loader):
+                images, _ = data
+                if torch.cuda.is_available():
+                    images = images.cuda()
+                out = model(images)
+                out = softmax(out).cpu().numpy()
+                if outputs is not None:
+                    outputs = np.concatenate((outputs, out))
+                else:
+                    outputs = out
+            if all_output is not None:
+                all_output += outputs
+            else:
+                all_output = outputs
+        predicted = np.argmax(all_output, 1)
+        types += [i + 1 for i in predicted.tolist()]
+    dataframe = pd.DataFrame({'FileName': file_name_list, 'type': types})
+    dataframe.to_csv(file_name, index=False, sep=',')
+

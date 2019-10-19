@@ -1,6 +1,7 @@
 import pandas as pd
 from collections import Counter
 import numpy as np
+from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier,AdaBoostClassifier,ExtraTreesClassifier
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import cross_val_score
@@ -43,11 +44,7 @@ def stacking(model_names):
         file_names = submit['FileName']
     test_inputs=test_inputs.T
     train_inputs=train_inputs.T
-    clf1 = RandomForestClassifier(n_estimators=100)
-    clf2 = DecisionTreeClassifier(max_depth=4)
-    clf3 = ExtraTreesClassifier(n_estimators=10)
-#    clf = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2), ('gnb', clf3)], voting='hard')
-    clf = clf3
+    clf = RandomForestClassifier(n_estimators=100)
     scores = cross_val_score(clf, train_inputs, train_label)
     print(scores.mean())
     clf = clf.fit(train_inputs, train_label)
@@ -56,7 +53,8 @@ def stacking(model_names):
     dataframe.to_csv('result/submit.csv', index=False, sep=',')
 
 if __name__ =='__main__':
-
-    model_names = ['senet154','se_resnet101','efficientnet-b5']
+    model_names=['se_resnext101_32x4d','se_resnet101','se_resnext50_32x4d','efficientnet-b4']
+    model_names= ['resnext101_32x8d_wsl']
+#    model_names = ['senet154','se_resnet101','efficientnet-b5','efficientnet-b4','se_resnext101_32x4d']
     get_model_result(model_names)
     stacking(model_names)
